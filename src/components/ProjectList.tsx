@@ -1,54 +1,19 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, AlertTriangle } from "lucide-react";
-
-interface Project {
-  id: string;
-  name: string;
-  description: string;
-  status: 'active' | 'completed' | 'on-hold';
-  dueDate: string;
-  taskCount: number;
-  riskLevel: 'low' | 'medium' | 'high';
-}
+import { Calendar, Users, AlertTriangle, Edit, Trash2 } from "lucide-react";
+import { useProjects } from "@/hooks/useProjects";
+import { useTasks } from "@/hooks/useTasks";
+import { CreateProjectDialog } from "./CreateProjectDialog";
 
 interface ProjectListProps {
   onSelectProject: (projectId: string) => void;
 }
 
 export const ProjectList = ({ onSelectProject }: ProjectListProps) => {
-  const [projects] = useState<Project[]>([
-    {
-      id: '1',
-      name: 'E-commerce Platform',
-      description: 'Build a modern e-commerce platform with React and Node.js',
-      status: 'active',
-      dueDate: '2024-08-15',
-      taskCount: 24,
-      riskLevel: 'medium'
-    },
-    {
-      id: '2',
-      name: 'Mobile App MVP',
-      description: 'Develop minimum viable product for mobile application',
-      status: 'active',
-      dueDate: '2024-07-30',
-      taskCount: 18,
-      riskLevel: 'high'
-    },
-    {
-      id: '3',
-      name: 'Website Redesign',
-      description: 'Redesign company website with modern UI/UX',
-      status: 'completed',
-      dueDate: '2024-06-20',
-      taskCount: 12,
-      riskLevel: 'low'
-    }
-  ]);
+  const { projects, isLoading, deleteProject } = useProjects();
+  const { tasks } = useTasks();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -68,45 +33,78 @@ export const ProjectList = ({ onSelectProject }: ProjectListProps) => {
     }
   };
 
+  const getTaskCount = (projectId: string) => {
+    return tasks.filter(task => task.project_id === projectId).length;
+  };
+
+  const handleDeleteProject = (projectId: string, projectName: string) => {
+    if (window.confirm(`Are you sure you want to delete "${projectName}"? This will also delete all associated tasks.`)) {
+      deleteProject.mutate(projectId);
+    }
+  };
+
+  if (isLoading) {
+    return <div>Loading projects...</div>;
+  }
+
   return (
     <div className="space-y-4">
-      {projects.map((project) => (
-        <Card key={project.id} className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">{project.name}</CardTitle>
-              <Badge className={getStatusColor(project.status)}>
-                {project.status}
-              </Badge>
-            </div>
-            <CardDescription>{project.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  {project.dueDate}
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4" />
-                  {project.taskCount} tasks
-                </div>
-                <div className={`flex items-center gap-1 ${getRiskColor(project.riskLevel)}`}>
-                  <AlertTriangle className="h-4 w-4" />
-                  {project.riskLevel} risk
+      {projects.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground mb-4">No projects yet. Create your first project!</p>
+          <CreateProjectDialog />
+        </div>
+      ) : (
+        projects.map((project) => (
+          <Card key={project.id} className="hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">{project.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge className={getStatusColor(project.status)}>
+                    {project.status}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteProject(project.id, project.name)}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            </div>
-            <Button 
-              onClick={() => onSelectProject(project.id)}
-              className="w-full"
-            >
-              Open Project
-            </Button>
-          </CardContent>
-        </Card>
-      ))}
+              <CardDescription>{project.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                <div className="flex items-center gap-4">
+                  {project.due_date && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      {project.due_date}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <Users className="h-4 w-4" />
+                    {getTaskCount(project.id)} tasks
+                  </div>
+                  <div className={`flex items-center gap-1 ${getRiskColor(project.risk_level)}`}>
+                    <AlertTriangle className="h-4 w-4" />
+                    {project.risk_level} risk
+                  </div>
+                </div>
+              </div>
+              <Button 
+                onClick={() => onSelectProject(project.id)}
+                className="w-full"
+              >
+                Open Project
+              </Button>
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 };

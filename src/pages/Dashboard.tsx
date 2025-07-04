@@ -6,33 +6,93 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectList } from "@/components/ProjectList";
 import { TaskTable } from "@/components/TaskTable";
 import { AIAssistant } from "@/components/AIAssistant";
-import { FileUpload } from "@/components/FileUpload";
+import { CreateProjectDialog } from "@/components/CreateProjectDialog";
 import { Plus, Upload, Download, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTasks } from "@/hooks/useTasks";
+import { useProjects } from "@/hooks/useProjects";
+import * as XLSX from 'xlsx';
 
 const Dashboard = () => {
   const [activeProject, setActiveProject] = useState<string | null>(null);
   const [showAIPanel, setShowAIPanel] = useState(false);
   const { toast } = useToast();
-
-  const handleCreateProject = () => {
-    toast({
-      title: "Create Project",
-      description: "Project creation feature coming soon!",
-    });
-  };
+  const { tasks } = useTasks(activeProject);
+  const { projects } = useProjects();
 
   const handleImportFile = () => {
-    toast({
-      title: "Import File",
-      description: "File import feature coming soon!",
-    });
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls,.csv';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = new Uint8Array(e.target?.result as ArrayBuffer);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const sheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            
+            console.log('Imported data:', jsonData);
+            toast({
+              title: "File Imported",
+              description: `Successfully imported ${jsonData.length} rows from ${file.name}`,
+            });
+          } catch (error) {
+            toast({
+              title: "Import Error",
+              description: "Failed to import file. Please check the format.",
+              variant: "destructive",
+            });
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+    };
+    input.click();
   };
 
   const handleExportProject = () => {
+    if (tasks.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "Please create some tasks first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const exportData = tasks.map(task => ({
+      'Task Name': task.task_name,
+      'Description': task.description || '',
+      'Status': task.status,
+      'Priority': task.priority,
+      'Risk Level': task.risk_level,
+      'Assigned To': task.assigned_to || '',
+      'Start Date': task.start_date || '',
+      'End Date': task.end_date || '',
+      'Estimated Hours': task.estimated_hours || 0,
+      'Confidence Score': task.confidence_score || 0,
+      'Tags': task.tags?.join(', ') || '',
+      'Notes': task.notes || ''
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Tasks');
+    
+    const projectName = activeProject 
+      ? projects.find(p => p.id === activeProject)?.name || 'Project'
+      : 'All Projects';
+    
+    XLSX.writeFile(wb, `${projectName}_Tasks_${new Date().toISOString().split('T')[0]}.xlsx`);
+    
     toast({
-      title: "Export Project",
-      description: "Project export feature coming soon!",
+      title: "Export Successful",
+      description: `Exported ${tasks.length} tasks to Excel file`,
     });
   };
 
@@ -45,10 +105,7 @@ const Dashboard = () => {
             <p className="text-muted-foreground">AI-Powered Project Management Assistant</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleCreateProject} className="gap-2">
-              <Plus className="h-4 w-4" />
-              New Project
-            </Button>
+            <CreateProjectDialog />
             <Button variant="outline" onClick={handleImportFile} className="gap-2">
               <Upload className="h-4 w-4" />
               Import Excel

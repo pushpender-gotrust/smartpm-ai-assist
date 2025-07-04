@@ -9,7 +9,107 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          name: string
+          risk_level: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          risk_level?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          risk_level?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          confidence_score: number | null
+          created_at: string
+          dependencies: string[] | null
+          description: string | null
+          end_date: string | null
+          estimated_hours: number | null
+          id: string
+          notes: string | null
+          priority: string
+          project_id: string | null
+          risk_level: string
+          start_date: string | null
+          status: string
+          tags: string[] | null
+          task_name: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          dependencies?: string[] | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          project_id?: string | null
+          risk_level?: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          task_name: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          dependencies?: string[] | null
+          description?: string | null
+          end_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          notes?: string | null
+          priority?: string
+          project_id?: string | null
+          risk_level?: string
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          task_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
